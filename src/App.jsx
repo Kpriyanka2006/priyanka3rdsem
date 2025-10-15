@@ -1,74 +1,118 @@
+import { useState } from "react";
+import { GoogleGenAI } from "@google/genai";
+
 function App() {
+  const [input, setInput] = useState("");
+  const [response, setResponse] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    if (!input.trim()) {
+      setError("Please enter a question");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResponse("");
+
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: import.meta.env.VITE_GOOGLE_AI_API_KEY,
+      });
+
+      const tools = [
+        {
+          googleSearch: {},
+        },
+      ];
+
+      const config = {
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+        tools,
+      };
+
+      const model = "gemini-2.5-flash-lite";
+      const contents = [
+        {
+          role: "user",
+          parts: [
+            {
+              text: input,
+            },
+          ],
+        },
+      ];
+
+      const streamResponse = await ai.models.generateContentStream({
+        model,
+        config,
+        contents,
+      });
+
+      let fullResponse = "";
+      for await (const chunk of streamResponse) {
+        fullResponse += chunk.text || "";
+        setResponse(fullResponse);
+      }
+    } catch (err) {
+      setError(
+        err.message || "An error occurred while processing your request"
+      );
+      console.error("Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <>
-      <div className="p-20">
-        <div className="flex justify-between gap-4 bg-fuchsia-100 text-black">
-          <div className=" text-4xl"> Metacord</div>
+    <div className="max-w-3xl mx-auto p-5">
+      <h1 className="text-3xl font-bold mb-6">Google AI Search Assistant</h1>
 
-          <div className="flex justify-center gap-4 margin-5 p-5">
-            <div>About</div>
-            <div>Product</div>
-            <div>How it works</div>
-            <div className="flex  bg-amber-50 text-blue-400 rounded-2xl ">
-              <div>Signup</div>
-            </div>
-            <div className="flex bg-blue-950 rounded-2xl text-amber-50">
-              <div>start for free</div>
-            </div>
-          </div>
-        </div>
-        <div className=" flex gap-10 bg-fuchsia-100 p-5 px-4 text-6xl text-fuchsia-950 bold grid-cols-3">
-          <div>
-            <div>Evaluate your</div>
-            <div>meeting with Ai</div>
-            <div> Powered recording </div>
-          </div>
-          <img
-            src="https://images.pexels.com/photos/2176593/pexels-photo-2176593.jpeg?_gl=1*1qdqk6e*_ga*NzI1MjQ4Njg1LjE3NjA0MjUzNDE.*ga_8JE65Q40S6*czE3NjA0MzA5MDgkbzIkZzEkdDE3NjA0MzI0NjUkajIyJGwwJGgw"
-            alt="pexel image"
-            className=" e-50 h-50 rounded-xl shadow-lg border-gray-300 hover:scale-125 transition-transform duration-100"
-          />
-          <img
-            src="https://images.pexels.com/photos/257360/pexels-photo-257360.jpeg?_gl=1*1p8odhi*_ga*NzI1MjQ4Njg1LjE3NjA0MjUzNDE.*_ga_8JE65Q40S6*czE3NjA0MzA5MDgkbzIkZzEkdDE3NjA0MzI3NDckajYwJGwwJGgw"
-            alt="pexel image"
-            className=" e-50 h-50 rounded-xl shadow-lg border-gray-300 hover:scale-125 transition-transform duration-100"
+      <form onSubmit={handleSubmit}>
+        <div className="mb-2.5">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a question..."
+            className="w-full p-2.5 text-base border border-gray-300 rounded disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={loading}
           />
         </div>
 
-        <div className=" bg-fuchsia-100 text-black">
-          <div>with our advanced artificial inteligence tecnology. your </div>
-          <div>
-            meeting are not just recorded. they transformed into variable{" "}
-          </div>
-          <div>insights and productivitynbooster</div>
+        <button
+          type="submit"
+          disabled={loading}
+          className={`px-5 py-2.5 text-base text-white border-none rounded ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+          }`}
+        >
+          {loading ? "Processing..." : "Submit"}
+        </button>
+      </form>
+
+      {error && (
+        <div className="mt-5 p-2.5 bg-red-100 text-red-800 border border-red-200 rounded">
+          {error}
         </div>
-        <div className="flex p-5 bg-fuchsia-100 gap-5">
-          <div className=" bg-fuchsia-950 text-blue-50 rounded-2xl">
-            sing to free
-          </div>
-          <div className=" bg-cyan-50 text-black rounded-2xl">watch demo</div>
+      )}
+
+      {response && (
+        <div className="mt-5 p-4 bg-gray-50 border border-gray-300 rounded whitespace-pre-wrap">
+          <h3 className="text-xl font-semibold mb-2">Response:</h3>
+          {response}
         </div>
-        <div className="flex gap-10  bg-fuchsia-100 text-black text-4xl">
-          <div>
-            <div className=" text-5xl text-black">10+k</div>
-            <div className=" text-black text-2xl">Active users mont</div>
-          </div>
-          <div className=" flex gap-20 ">
-            <div>
-              <div className=" text-5xl text-black">15+k</div>
-              <div classname="   text-black text-1xl">
-                Active in many contry
-              </div>
-            </div>
-            <img
-              src="https://images.pexels.com/photos/257360/pexels-photo-257360.jpeg?_gl=1*1p8odhi*_ga*NzI1MjQ4Njg1LjE3NjA0MjUzNDE.*_ga_8JE65Q40S6*czE3NjA0MzA5MDgkbzIkZzEkdDE3NjA0MzI3NDckajYwJGwwJGgw"
-              alt="pexel image"
-              className=" e-50 h-50 rounded-xl shadow-lg border-gray-300 hover:scale-125 transition-transform duration-100"
-            />
-          </div>
-        </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }
+
 export default App;
